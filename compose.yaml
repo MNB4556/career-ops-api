@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: career
+      POSTGRES_PASSWORD: career
+      POSTGRES_DB: career_ops
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U career -d career_ops"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://career:career@db:5432/career_ops
+    command:
+      - sh
+      - -c
+      - python -m career_ops_api.seed --keep && uvicorn career_ops_api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
