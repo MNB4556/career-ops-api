@@ -17,10 +17,7 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://career:career@db:5432/career_ops
-    command:
-      - sh
-      - -c
-      - python -m career_ops_api.seed --keep && uvicorn career_ops_api.main:app --host 0.0.0.0 --port 8000
+      SEED_ON_START: "1"
     ports:
       - "8000:8000"
     depends_on:

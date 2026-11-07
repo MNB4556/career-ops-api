@@ -69,9 +69,11 @@ then leaves it alone. The API is on `http://localhost:8000`, docs on
 `http://localhost:8000/docs`.
 
 The image is a single stage on `python:3.12-slim`, installs the package, and runs
-as a non-root user. It exposes a `HEALTHCHECK` that calls `/health`.
+as a non-root user. It exposes a `HEALTHCHECK` that calls `/health`. The container
+listens on `8000` unless `PORT` is set, and seeds only when `SEED_ON_START=1` and
+the database is empty.
 
-## CI and deployment
+## CI
 
 `.github/workflows/ci.yml` does four things:
 
@@ -81,10 +83,20 @@ as a non-root user. It exposes a `HEALTHCHECK` that calls `/health`.
 4. On `main`, pushes the image to GHCR and calls `DEPLOY_WEBHOOK_URL` if that
    secret is set.
 
-There is no live URL yet. The deploy step is wired but idle until a host is
-chosen and the secret exists. The host needs to run the image with
-`DATABASE_URL` set and seed the database once with
-`python -m career_ops_api.seed --keep`.
+## Deploy on Render
+
+The service runs from the Dockerfile, so Render builds the same image CI builds.
+
+1. Create a Postgres instance on Render.
+2. Create a Web Service from this repo with the Docker runtime.
+3. Set `DATABASE_URL` to the internal Postgres connection string, set
+   `SEED_ON_START=1`, and set the health check path to `/health`.
+4. Copy the Deploy Hook URL into this repo's `DEPLOY_WEBHOOK_URL` secret.
+
+Render supplies `PORT`, and the container binds to it. The connection string can
+use `postgres://` or `postgresql://`; the app rewrites it to the psycopg 3 driver.
+After the first boot the seed finds rows and does nothing, so restarts do not
+duplicate data.
 
 ## Stack
 

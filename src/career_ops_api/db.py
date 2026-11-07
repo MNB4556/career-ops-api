@@ -14,7 +14,14 @@ class Base(DeclarativeBase):
 
 
 def database_url() -> str:
-    return os.getenv("DATABASE_URL", DEFAULT_URL)
+    url = os.getenv("DATABASE_URL", DEFAULT_URL)
+    # Render and Heroku hand out postgres:// URLs. SQLAlchemy would pick
+    # psycopg2 from that scheme, and this project installs psycopg 3.
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url.removeprefix("postgres://")
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    return url
 
 
 def make_engine(url: str | None = None) -> Engine:
