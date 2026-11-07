@@ -79,7 +79,7 @@ the database is empty.
 
 1. Runs ruff and pytest on Python 3.11 and 3.12.
 2. Runs the same suite against a Postgres 16 service container.
-3. Builds the image on every push and pull request.
+3. Builds the image, starts it, and checks `/health` and `/postings`.
 4. On `main`, pushes the image to GHCR and calls `DEPLOY_WEBHOOK_URL` if that
    secret is set.
 

@@ -89,15 +89,42 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build and push
+      - name: Build the image
         uses: docker/build-push-action@v7
         with:
           context: .
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          load: true
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            career-ops-api:ci
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Start the image and check /health
+        run: |
+          docker run --rm -d --name api -e PORT=8000 -p 8000:8000 career-ops-api:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health \
+              && curl --fail --silent http://127.0.0.1:8000/postings > /dev/null; then
+              echo
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "health check did not pass"
+          docker logs api
+          exit 1
+
+      - name: Stop the container
+        if: always()
+        run: docker rm -f api || true
+
+      - name: Push to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: echo "$TAGS" | xargs -n1 docker push
 
   deploy:
     name: notify deploy target
