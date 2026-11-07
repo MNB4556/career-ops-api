@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: career-ops-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SEED_ON_START
+        value: "1"

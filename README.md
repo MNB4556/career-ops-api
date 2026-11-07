@@ -85,18 +85,22 @@ the database is empty.
 
 ## Deploy on Render
 
-The service runs from the Dockerfile, so Render builds the same image CI builds.
+`render.yaml` defines the web service. The database is a free Neon Postgres,
+because Render's free Postgres expires 30 days after creation.
 
-1. Create a Postgres instance on Render.
-2. Create a Web Service from this repo with the Docker runtime.
-3. Set `DATABASE_URL` to the internal Postgres connection string, set
-   `SEED_ON_START=1`, and set the health check path to `/health`.
-4. Copy the Deploy Hook URL into this repo's `DEPLOY_WEBHOOK_URL` secret.
+1. Create a Neon project and copy its connection string.
+2. In Render, choose New > Blueprint, connect this repo, and apply `render.yaml`.
+3. Paste the Neon connection string when Render asks for `DATABASE_URL`.
+4. Copy the service's Deploy Hook URL into this repo's `DEPLOY_WEBHOOK_URL` secret.
 
 Render supplies `PORT`, and the container binds to it. The connection string can
 use `postgres://` or `postgresql://`; the app rewrites it to the psycopg 3 driver.
 After the first boot the seed finds rows and does nothing, so restarts do not
 duplicate data.
+
+The Free web service sleeps after 15 minutes without traffic and takes about a
+minute to wake. `autoDeploy` is off on purpose: Render deploys when CI calls the
+hook, not on every push.
 
 ## Stack
 
