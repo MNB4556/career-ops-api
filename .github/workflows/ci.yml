@@ -106,7 +106,8 @@ jobs:
           docker run --rm -d --name api -e PORT=8000 -p 8000:8000 career-ops-api:ci
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8000/health \
-              && curl --fail --silent http://127.0.0.1:8000/postings > /dev/null; then
+              && curl --fail --silent http://127.0.0.1:8000/postings > /dev/null \
+              && curl --fail --silent http://127.0.0.1:8000/ | grep -q "career-ops API"; then
               echo
               exit 0
             fi

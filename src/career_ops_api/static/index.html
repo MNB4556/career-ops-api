@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>career-ops API</title>
+<style>
+  :root {
+    --bg: #222326;
+    --panel: #2a2b2f;
+    --line: #3a3b40;
+    --text: #ece9e2;
+    --muted: #a5a199;
+    --accent: #d8b56a;
+    --good: #7fbf8a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 20px 64px; }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+  }
+  h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+  a { color: var(--accent); }
+  header p { margin: 0; white-space: nowrap; }
+  .stats { display: flex; flex-wrap: wrap; gap: 28px; margin: 24px 0; }
+  .stat { min-width: 86px; }
+  .stat b { display: block; font-size: 1.45rem; font-variant-numeric: tabular-nums; }
+  .stat span {
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 8px 0 16px; }
+  label { color: var(--muted); font-size: 0.9rem; }
+  input[type=search] {
+    flex: 1 1 280px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font: inherit;
+  }
+  input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .count { color: var(--muted); font-size: 0.9rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; min-width: 780px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+    background: #26272b;
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.title { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .salary { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  button:disabled { cursor: default; color: var(--good); border-color: transparent; background: transparent; padding-left: 0; }
+  .empty, .error { padding: 28px 14px; color: var(--muted); }
+  .error { color: #e0908c; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; display: flex; gap: 18px; flex-wrap: wrap; }
+  @media (max-width: 600px) {
+    .wrap { padding-top: 24px; }
+    h1 { font-size: 1.3rem; }
+    header p { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>career-ops API</h1>
+      <p class="sub">A small service over fictional job-search data. The database is Postgres; the rows are invented.</p>
+    </div>
+    <p><a href="/docs">API docs</a> · <a href="https://github.com/MNB4556/career-ops-api">Source</a></p>
+  </header>
+
+  <div class="stats" id="stats" aria-label="Totals"></div>
+
+  <div class="controls">
+    <label for="q">Search</label>
+    <input id="q" type="search" placeholder="Title or company" autocomplete="off">
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Role</th><th>Company</th><th>Location</th><th>Source</th><th>Posted</th><th>Salary</th><th></th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="empty" id="empty" hidden>No postings match.</p>
+  <p class="error" id="error" hidden></p>
+
+  <footer>
+    <span>12 fictional postings, seeded once.</span>
+    <a href="/openapi.json">OpenAPI schema</a>
+  </footer>
+</div>
+<script>
+const rows = document.getElementById("rows");
+const count = document.getElementById("count");
+const empty = document.getElementById("empty");
+const errorBox = document.getElementById("error");
+const statsBox = document.getElementById("stats");
+const search = document.getElementById("q");
+let query = "";
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+function money(min, max) {
+  const k = (n) => "£" + Math.round(n / 1000) + "k";
+  if (min != null && max != null) return k(min) + "–" + k(max);
+  if (min != null) return k(min) + "+";
+  if (max != null) return "Up to " + k(max);
+  return "Not listed";
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + "T00:00:00Z");
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+async function getJSON(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(res.status + " " + res.statusText);
+  return res.json();
+}
+
+function showError(message) {
+  errorBox.textContent = message;
+  errorBox.hidden = false;
+}
+
+function renderStats(stats) {
+  statsBox.replaceChildren();
+  const items = [["Postings", stats.postings]];
+  for (const [status, value] of Object.entries(stats.applications)) {
+    items.push([status.charAt(0).toUpperCase() + status.slice(1), value]);
+  }
+  for (const [label, value] of items) {
+    const box = el("div", "stat");
+    box.append(el("b", null, String(value)), el("span", null, label));
+    statsBox.append(box);
+  }
+}
+
+function renderRows(postings) {
+  rows.replaceChildren();
+  empty.hidden = postings.length > 0;
+  count.textContent = postings.length + (postings.length === 1 ? " posting" : " postings");
+
+  for (const posting of postings) {
+    const tr = document.createElement("tr");
+
+    const title = el("td", "title");
+    const link = el("a", null, posting.title);
+    link.href = posting.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    title.append(link);
+    tr.append(title);
+
+    tr.append(el("td", null, posting.company));
+    tr.append(el("td", "muted", posting.location));
+    tr.append(el("td", "muted", posting.source));
+    tr.append(el("td", "muted", formatDate(posting.posted_at)));
+    tr.append(el("td", "salary", money(posting.salary_min, posting.salary_max)));
+
+    const action = document.createElement("td");
+    const button = el("button", null, "Mark applied");
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      button.textContent = "Saving";
+      try {
+        await getJSON("/applications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            posting_id: posting.id,
+            status: "applied",
+            notes: "Recorded from the demo page."
+          })
+        });
+        button.textContent = "Recorded";
+        renderStats(await getJSON("/stats"));
+      } catch (err) {
+        button.disabled = false;
+        button.textContent = "Mark applied";
+        showError("Could not record that application. " + err.message);
+      }
+    });
+    action.append(button);
+    tr.append(action);
+
+    rows.append(tr);
+  }
+}
+
+async function load() {
+  errorBox.hidden = true;
+  try {
+    const params = new URLSearchParams({ limit: "100" });
+    if (query) params.set("q", query);
+    const [postings, stats] = await Promise.all([
+      getJSON("/postings?" + params.toString()),
+      getJSON("/stats")
+    ]);
+    renderRows(postings);
+    renderStats(stats);
+  } catch (err) {
+    showError("Could not load postings. " + err.message);
+  }
+}
+
+let timer;
+search.addEventListener("input", (event) => {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    query = event.target.value.trim();
+    load();
+  }, 200);
+});
+
+load();
+</script>
+</body>
+</html>

@@ -7,9 +7,10 @@ parts of backend work that a local CLI does not: an HTTP API, Pydantic request
 and response models, a server database, containers, and a pipeline that tests,
 builds and publishes an image.
 
-Live at <https://career-ops-api.onrender.com>, with interactive docs at `/docs`.
-The service runs on Render's free tier, so the first request after 15 idle
-minutes takes about a minute.
+Live at <https://career-ops-api.onrender.com>. The root serves a small page that
+lists the postings and can record an application. Interactive docs are at
+`/docs`. The service runs on Render's free tier, so the first request after 15
+idle minutes takes about a minute.
 
 The data is fictional. There is no connection to the real
 [career-ops](https://github.com/MNB4556/career-ops) database, and the CLI is not
@@ -19,7 +20,7 @@ modified by this repo.
 
 | Method | Path | What it does |
 | --- | --- | --- |
-| GET | `/` | Redirects to `/docs` |
+| GET | `/` | Demo page listing the postings |
 | GET | `/health` | Liveness check used by the container healthcheck |
 | GET | `/postings` | List postings, newest first. Filters: `q`, `source`, `limit`, `offset` |
 | GET | `/postings/{id}` | One posting with its description |

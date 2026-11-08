@@ -13,10 +13,12 @@ def test_health(client: TestClient) -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_root_redirects_to_docs(client: TestClient) -> None:
-    response = client.get("/", follow_redirects=False)
-    assert response.status_code == 307
-    assert response.headers["location"] == "/docs"
+def test_root_serves_the_demo_page(client: TestClient) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "career-ops API" in response.text
+    assert "/docs" in response.text
 
 
 def test_empty_database_returns_empty_list(client: TestClient) -> None:

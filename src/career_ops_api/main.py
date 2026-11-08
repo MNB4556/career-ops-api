@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import date
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,8 @@ from career_ops_api.schemas import (
     StatsOut,
 )
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -28,7 +31,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="career-ops demo API",
-    version="0.1.1",
+    version="0.1.2",
     description="Endpoints over synthetic job-search data.",
     lifespan=lifespan,
 )
@@ -37,8 +40,8 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 
 @app.get("/", include_in_schema=False)
-def root() -> RedirectResponse:
-    return RedirectResponse(url="/docs")
+def root() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")
