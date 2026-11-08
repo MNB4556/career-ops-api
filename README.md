@@ -19,6 +19,7 @@ modified by this repo.
 
 | Method | Path | What it does |
 | --- | --- | --- |
+| GET | `/` | Redirects to `/docs` |
 | GET | `/health` | Liveness check used by the container healthcheck |
 | GET | `/postings` | List postings, newest first. Filters: `q`, `source`, `limit`, `offset` |
 | GET | `/postings/{id}` | One posting with its description |

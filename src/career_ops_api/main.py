@@ -5,6 +5,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,11 @@ app = FastAPI(
 )
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health")
