@@ -1,5 +1,7 @@
 # career-ops API
 
+[![CI](https://github.com/MNB4556/career-ops-api/actions/workflows/ci.yml/badge.svg)](https://github.com/MNB4556/career-ops-api/actions/workflows/ci.yml)
+
 A small API over synthetic job-search data. It exists to show the
 parts of backend work that a local CLI does not: an HTTP API, Pydantic request
 and response models, a server database, containers, and a pipeline that tests,
