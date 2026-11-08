@@ -5,6 +5,10 @@ parts of backend work that a local CLI does not: an HTTP API, Pydantic request
 and response models, a server database, containers, and a pipeline that tests,
 builds and publishes an image.
 
+Live at <https://career-ops-api.onrender.com>, with interactive docs at `/docs`.
+The service runs on Render's free tier, so the first request after 15 idle
+minutes takes about a minute.
+
 The data is fictional. There is no connection to the real
 [career-ops](https://github.com/MNB4556/career-ops) database, and the CLI is not
 modified by this repo.
@@ -93,10 +97,10 @@ because Render's free Postgres expires 30 days after creation.
 3. Paste the Neon connection string when Render asks for `DATABASE_URL`.
 4. Copy the service's Deploy Hook URL into this repo's `DEPLOY_WEBHOOK_URL` secret.
 
-Render supplies `PORT`, and the container binds to it. The connection string can
-use `postgres://` or `postgresql://`; the app rewrites it to the psycopg 3 driver.
-After the first boot the seed finds rows and does nothing, so restarts do not
-duplicate data.
+The hook is set, so a green build on `main` redeploys the service. Render supplies
+`PORT`, and the container binds to it. The connection string can use `postgres://`
+or `postgresql://`; the app rewrites it to the psycopg 3 driver. After the first
+boot the seed finds rows and does nothing, so restarts do not duplicate data.
 
 The Free web service sleeps after 15 minutes without traffic and takes about a
 minute to wake. `autoDeploy` is off on purpose: Render deploys when CI calls the

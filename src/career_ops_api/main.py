@@ -27,7 +27,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="career-ops demo API",
-    version="0.1.0",
+    version="0.1.1",
     description="Endpoints over synthetic job-search data.",
     lifespan=lifespan,
 )
