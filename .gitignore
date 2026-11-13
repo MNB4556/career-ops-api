@@ -9,3 +9,10 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+infra/placeholder.zip

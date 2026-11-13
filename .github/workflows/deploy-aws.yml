@@ -1,0 +1,67 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-2
+  FUNCTION_NAME: career-ops-api
+
+jobs:
+  deploy:
+    name: package and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build the deployment package
+        run: |
+          pip install --no-cache-dir --target build .
+          cd build
+          zip -qr ../function.zip .
+
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload the package
+        run: |
+          aws s3 cp function.zip \
+            "s3://${{ vars.AWS_ARTIFACT_BUCKET }}/${{ github.sha }}/function.zip"
+
+      - name: Point the function at it
+        run: |
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --s3-bucket "${{ vars.AWS_ARTIFACT_BUCKET }}" \
+            --s3-key "${{ github.sha }}/function.zip" \
+            --output json > /dev/null
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+      - name: Smoke test
+        if: vars.AWS_API_URL != ''
+        run: |
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent "${{ vars.AWS_API_URL }}/health"; then
+              echo
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "health check did not pass"
+          exit 1

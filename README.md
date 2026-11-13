@@ -110,6 +110,46 @@ The Free web service sleeps after 15 minutes without traffic and takes about a
 minute to wake. `autoDeploy` is off on purpose: Render deploys when CI calls the
 hook, not on every push.
 
+## Deploy on AWS
+
+The same app runs on Lambda behind an API Gateway HTTP API. Mangum turns the
+API Gateway payload into an ASGI request, so there is one application and two
+hosts.
+
+Terraform lives in `infra/`. It creates the function shell, the HTTP API, an S3
+bucket for deployment packages, the role GitHub Actions assumes through OIDC,
+and a budget alarm. It deliberately has no VPC, no NAT gateway and no RDS: the
+function reaches Neon over the public internet, which avoids the three things
+that turn a free-tier experiment into a monthly bill.
+
+One-time setup:
+
+```powershell
+winget install Hashicorp.Terraform Amazon.AWSCLI
+aws configure
+cd infra
+copy terraform.tfvars.example terraform.tfvars   # fill in the database URL
+terraform init
+terraform apply
+```
+
+Copy the three outputs into repository variables:
+
+```powershell
+gh variable set AWS_DEPLOY_ROLE_ARN --body "<deploy_role_arn>"
+gh variable set AWS_ARTIFACT_BUCKET --body "<artifact_bucket>"
+gh variable set AWS_API_URL --body "<api_url>"
+```
+
+Merge to `main`, then run **Deploy to AWS** from the Actions tab. It builds the
+package, uploads it to S3, points the function at it, and calls `/health`. The
+role only trusts `main`, so a run from another branch is refused.
+
+Once that works, delete the access key you created for `aws configure`. Deploys
+use OIDC, so there is no long-lived credential in GitHub. Keep
+`infra/terraform.tfstate` out of Git: it holds the database URL.
+
 ## Stack
 
-FastAPI, SQLAlchemy 2, Pydantic 2, psycopg 3, uvicorn, pytest and ruff.
+FastAPI, SQLAlchemy 2, Pydantic 2, psycopg 3, uvicorn, pytest and ruff. The AWS
+deployment adds Mangum, Lambda, API Gateway, S3 and Terraform.

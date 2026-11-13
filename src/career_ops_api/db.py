@@ -26,8 +26,16 @@ def database_url() -> str:
 
 def make_engine(url: str | None = None) -> Engine:
     url = url or database_url()
-    connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    return create_engine(url, connect_args=connect_args, pool_pre_ping=True)
+    kwargs: dict[str, object] = {"pool_pre_ping": True}
+    if url.startswith("sqlite"):
+        kwargs["connect_args"] = {"check_same_thread": False}
+    elif os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        # A Lambda container serves one request at a time and Neon counts
+        # connections per project. One connection per container keeps the
+        # total predictable under a burst of cold starts.
+        kwargs["pool_size"] = 1
+        kwargs["max_overflow"] = 0
+    return create_engine(url, **kwargs)
 
 
 engine = make_engine()
