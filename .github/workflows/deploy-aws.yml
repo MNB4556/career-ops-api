@@ -55,9 +55,14 @@ jobs:
 
       - name: Smoke test
         if: vars.AWS_API_URL != ''
+        env:
+          API_URL: ${{ vars.AWS_API_URL }}
         run: |
+          # The stage invoke URL ends in a slash; a bare "$URL/health" would
+          # request "//health" and 404.
+          base="${API_URL%/}"
           for attempt in $(seq 1 20); do
-            if curl --fail --silent "${{ vars.AWS_API_URL }}/health"; then
+            if curl --fail --silent "$base/health"; then
               echo
               exit 0
             fi

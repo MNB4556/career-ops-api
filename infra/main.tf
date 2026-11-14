@@ -119,6 +119,23 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Lambda fetches an S3-hosted package using the function's own execution role,
+# not the caller's. Without this, updating the code from the deploy workflow
+# fails with an access-denied on the object.
+resource "aws_iam_role_policy" "lambda_package_read" {
+  name = "read-deployment-package"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:GetObject"]
+      Resource = "${aws_s3_bucket.artifacts.arn}/*"
+    }]
+  })
+}
+
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${var.project}"
   retention_in_days = 7
